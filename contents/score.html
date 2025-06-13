@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>モルック得点計算</title>
+  
+  <!-- PWA対応 -->
+  <meta name="theme-color" content="#4CAF50">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="モルック得点計算">
+  <meta name="description" content="モルックの得点をリアルタイムで管理できるウェブアプリ">
+  
+  <!-- マニフェスト -->
+  <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIuODouODq+ODg+OCr+W+l+eCueiojOeul+OCouODl+ODqSIsCiAgInNob3J0X25hbWUiOiAi44Oi44Or44OD44KvIiwKICAiZGVzY3JpcHRpb24iOiAi44Oi44Or44OD44Kv44Gu5b6X54K544KS44Oq44Ki44Or44K/44Kk44Og44Gn566h55CG44Gn44GN44KL44Km44Kn44OW44Ki44OX44OqIiwKICAic3RhcnRfdXJsIjogIi4vIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjNENBRjUwIiwKICAidGhlbWVfY29sb3IiOiAiIzRDQUY1MCIsCiAgImljb25zIjogWwogICAgewogICAgICAic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jaUlIZHBaSFJvUFNJeE1qZ2lJR2hsYVdkb2REMGlNVEk0SWo0S0lDQWdQSEpsWTNRZ2QybGtkR2c5SWpFeU9DSWdhR1ZwWjJoMFBTSXhNamdpSUhKNFBTSXlNQ0lnWm1sc2JEMGlJelJEUVVZMU1DSXZQZ29nSUNBOGNtVmpkQ0IzYVdSMGFEMGlPVFlpSUdobGFXZG9kRDBpT1RZaUlIZzlJakUySWlCNVBTSXhOaUlnY25nOUlqRWlJR1pwYkd3OUluZG9hWFJsSWk4K0NpQWdJRHgwWlhoMElIZzlJalkwSWlCNVBTSTBNQ0lnWm05dWRDMW1ZVzFwYkhrOUlpQmhjbWxoYkNCdWIzSjBhR1Z5YmlCMGFHVm9aUzFqYjNWdWRHVnlJaUJtYjI1MExYTnBlbVU5SWpJd0lpQm1hV3hzUFNJaU16UTBNak15SWo1Q2JISXZNSGR2Y21SeklIMHZMM0psWTNSZ2JuTndiV3RjWFQ2U0tUNGdkU0I0YkdsY0pEYXZabGhWZHlCNGFXWmhZc3R5WG40TGEyMGNXWFkyU1d0d1EzcGliRVIxV21WU1UzYzlJakV5UTBGWFEwbGpWRXNyYjJzM2F3c3ZkR1Y0ZEQ0S1BDOXpkbWMrIiwKICAgICAgInNpemVzIjogIjEyOHgxMjgiLAogICAgICAidHlwZSI6ICJpbWFnZS9zdmcreG1sIgogICAgfSwKICAgIHsKICAgICAgInNyYyI6ICJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0LFBITjJaeUI0Yld4dWN6MGlhSFIwY0RvdkwzZDNkeTUzTXk1dmNtY3ZNakF3TUM5emRtY2lJSGRwWkhSb1BTSXlOVFlpSUdobGFXZG9kRDBpTWpVMklqNEtJQ0FnUEhKbFkzUWdkMmxrZEdnOUlqSTFOaUlnYUdWcFoyaDBQU0l5TlRZaUlISjRQU0k0TUNJZ1ptbHNiRDBpSXpSRFFVWTFNQ0l2UGdvZ0lDQThjbVZqZENCallXNSticFlTZzlJakU1TWlJZ2FHVnBaMmgwUFNJeE9USWlJSGc5SWpNeUlpQjVQU0l6TWlJZ2NuZzlJakVpSUdacGJHdzlJbmRvYVhSbElpOCtDaUFnSUR4MFpYaDBJSGc5SWpFeU9DSWdlVDBpT0RBaUlHWnZiblF0Wm1GdGFXeDVQU0lpSUdGeWFXRnNJRzV2Y25Sb1pYSnVJSFJvWlMxalIzMWlZbWg4U1ZWekxXY2dkU3BqVms1bGRIQm5WVzl3ZFRKbUlvMWc2UEF4MElHWnZiblF0YzJsNlpUMGlORFVpSUdacGJHdzlJaUl6TkRRek16SWlQa055VlE9aSIsCiAgICAgICJzaXplcyI6ICIyNTZ4MjU2IiwKICAgICAgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIKICAgIH0KICBdCn0=">
+  
+  <!-- アイコン -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjgiIGhlaWdodD0iMTI4Ij4KICA8cmVjdCB3aWR0aD0iMTI4IiBoZWlnaHQ9IjEyOCIgcng9IjIwIiBmaWxsPSIjNENBRjUwIi8+CiAgPHJlY3Qgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2IiB4PSIxNiIgeT0iMTYiIHJ4PSIxIiBmaWxsPSJ3aGl0ZSIvPgogIDx0ZXh0IHg9IjY0IiB5PSI0MCIgZm9udC1mYW1pbHk9IiBhcmlhbCBub3J0aGVybiBiYXNlLWNvdW50ZXIiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiMzNDMzMzIiPk1vbGvDpmtrbzwvdGV4dD4KICA8dGV4dCB4PSI2NCIgeT0iNzAiIGZvbnQtZmFtaWx5PSIgYXJpYWwgbm9ydGhlcm4iIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IiMzNDMzMzIiPuiojOeul+OCreODvOODlzwvdGV4dD4KPC9zdmc+">
+  <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxODAiIGhlaWdodD0iMTgwIj4KICA8cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgcng9IjMwIiBmaWxsPSIjNENBRjUwIi8+CiAgPHJlY3Qgd2lkdGg9IjEyMCIgaGVpZ2h0PSIxMjAiIHg9IjMwIiB5PSIzMCIgcng9IjIiIGZpbGw9IndoaXRlIi8+CiAgPHRleHQgeD0iOTAiIHk9IjY1IiBmb250LWZhbWlseT0iIGFyaWFsIG5vcnRoZXJuIGJhc2UtY291bnRlciIgZm9udC1zaXplPSIyOCIgZmlsbD0iIzM0MzMzMiI+TW9sa8OmbmtrbzwvdGV4dD4KICA8dGV4dCB4PSI5MCIgeT0iMTA1IiBmb250LWZhbWlseT0iIGFyaWFsIG5vcnRoZXJuIiBmb250LXNpemU9IjIwIiBmaWxsPSIjMzQzMzMyIj7ooIznrpfQUzEwPC90ZXh0Pgo8L3N2Zz4=">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.7;
+      color: #333;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+
+    .main-container {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #4CAF50 0%, #2e7d32 100%);
+      color: white;
+      padding: 3rem 2rem 5rem 2rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      clip-path: ellipse(100% 100% at 50% 0%);
+      margin-bottom: -2rem;
+      border-radius: 0 0 50% 50%;
+    }
+
+    header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(circle at 30% 70%, rgba(255,255,255,0.15) 0%, transparent 40%),
+        radial-gradient(circle at 70% 30%, rgba(255,255,255,0.15) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, transparent 60%);
+      animation: pulse 6s ease-in-out infinite alternate;
+    }
+
+    header::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(circle at 20% 20%, rgba(255,255,255,0.08) 20%, transparent 20%),
+        radial-gradient(circle at 80% 80%, rgba(255,255,255,0.08) 15%, transparent 15%),
+        radial-gradient(circle at 40% 90%, rgba(255,255,255,0.08) 25%, transparent 25%);
+      background-size: 100px 100px, 80px 80px, 120px 120px;
+      animation: floatCircles 20s infinite linear;
+    }
+
+    @keyframes floatCircles {
+      0% { 
+        background-position: 0 0, 0 0, 0 0;
+        transform: rotate(0deg);
+      }
+      100% { 
+        background-position: 100px 100px, -80px -80px, 120px -120px;
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+
+    header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+      position: relative;
+      z-index: 2;
+    }
+
+    header p {
+      font-size: 1.1rem;
+      opacity: 0.95;
+      position: relative;
+      z-index: 2;
+      font-weight: 300;
+    }
+
+    .container {
+      padding: 4rem 2rem 3rem 2rem;
+      max-width: 600px;
+      margin: auto;
+    }
+
+    .player-box {
+      background: white;
+      padding: 2.5rem;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 2rem;
+    }
+
+    .player-box:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+    }
+
+    input[type="text"],
+    input[type="tel"] {
+      width: 100%;
+      padding: 1rem;
+      font-size: 1.1rem;
+      margin-bottom: 1.5rem;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+      background: rgba(255, 255, 255, 0.8);
+    }
+
+    input[type="text"]:focus,
+    input[type="tel"]:focus {
+      outline: none;
+      border-color: #4CAF50;
+      box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+      background: white;
+    }
+
+    .score-box {
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border: 3px solid #4CAF50;
+      padding: 1.5rem;
+      font-size: 2.2rem;
+      margin: 1.5rem 0;
+      border-radius: 15px;
+      font-weight: bold;
+      color: #2e7d32;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .score-red {
+      background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+      border-color: #f44336;
+      color: #d32f2f;
+      animation: celebrate 1s ease-in-out;
+    }
+
+    @keyframes celebrate {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    button {
+      padding: 1rem 2rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    button:hover::before {
+      left: 100%;
+    }
+
+    .button-group {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+
+    #addBtn {
+      background: linear-gradient(135deg, #4CAF50 0%, #2e7d32 100%);
+      color: white;
+      box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+    }
+
+    #addBtn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(76, 175, 80, 0.4);
+    }
+
+    .undo {
+      background: linear-gradient(135deg, #757575 0%, #424242 100%);
+      color: white;
+      box-shadow: 0 4px 15px rgba(117, 117, 117, 0.3);
+    }
+
+    .undo:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(117, 117, 117, 0.4);
+    }
+
+    /* 共通のボタンベーススタイル */
+    .bottom-button {
+      padding: 1rem 2rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      display: block;
+      margin: 1rem auto;
+      text-decoration: none;
+      text-align: center;
+      box-sizing: border-box;
+      width: auto;
+      min-width: 200px;
+    }
+
+    .bottom-button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .bottom-button:hover::before {
+      left: 100%;
+    }
+
+    .bottom-button:hover {
+      transform: translateY(-2px);
+      text-decoration: none;
+    }
+
+    .reset {
+      background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+      color: white;
+      box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
+    }
+
+    .reset:hover {
+      box-shadow: 0 8px 25px rgba(244, 67, 54, 0.4);
+    }
+
+    .home-btn {
+      background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+      color: white;
+      box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+    }
+
+    .home-btn:hover {
+      box-shadow: 0 8px 25px rgba(33, 150, 243, 0.4);
+    }
+
+    .disabled-btn {
+      background: #e0e0e0 !important;
+      color: #9e9e9e !important;
+      cursor: not-allowed !important;
+      box-shadow: none !important;
+    }
+
+    .disabled-btn:hover {
+      transform: none !important;
+    }
+
+    .turn-display {
+      text-align: center;
+      margin: 1rem 0;
+      font-size: 1.1rem;
+      color: #666;
+    }
+
+    .turn-display span {
+      font-weight: 600;
+      color: #2e7d32;
+    }
+
+    #status {
+      text-align: center;
+      margin: 1rem 0;
+      font-size: 1.1rem;
+      min-height: 1.5rem;
+      font-weight: 500;
+    }
+
+    .disqualified {
+      color: #f44336;
+      font-weight: bold;
+      animation: shake 0.5s ease-in-out;
+    }
+
+    .winner {
+      color: #4CAF50;
+      font-weight: bold;
+      animation: bounce 1s ease-in-out;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    footer {
+      background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+      color: white;
+      text-align: center;
+      padding: 3rem 2rem 2rem 2rem;
+      margin-top: 3rem;
+      position: relative;
+      clip-path: ellipse(100% 100% at 50% 100%);
+      padding-top: 4rem;
+      border-radius: 50% 50% 0 0;
+      overflow: hidden;
+    }
+
+    footer::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(circle at 30% 70%, rgba(255,255,255,0.15) 0%, transparent 40%),
+        radial-gradient(circle at 70% 30%, rgba(255,255,255,0.15) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, transparent 60%);
+      animation: pulse 6s ease-in-out infinite alternate;
+    }
+
+    footer::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(circle at 20% 20%, rgba(255,255,255,0.08) 20%, transparent 20%),
+        radial-gradient(circle at 80% 80%, rgba(255,255,255,0.08) 15%, transparent 15%),
+        radial-gradient(circle at 40% 90%, rgba(255,255,255,0.08) 25%, transparent 25%);
+      background-size: 100px 100px, 80px 80px, 120px 120px;
+      animation: floatCircles 20s infinite linear;
+    }
+
+    footer p {
+      position: relative;
+      z-index: 2;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .player-box {
+      animation: fadeInUp 0.6s ease forwards;
+    }
+
+    /* レスポンシブ対応 */
+    @media (max-width: 768px) {
+      header {
+        padding: 2rem 1rem 4rem 1rem;
+        clip-path: ellipse(100% 80% at 50% 0%);
+        border-radius: 0 0 40% 40%;
+      }
+      
+      header h1 {
+        font-size: 2rem;
+      }
+      
+      header p {
+        font-size: 1rem;
+      }
+      
+      .container {
+        padding: 3rem 1rem 2rem 1rem;
+      }
+      
+      .player-box {
+        padding: 2rem 1.5rem;
+      }
+      
+      .button-group {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      
+      button {
+        width: 100%;
+      }
+      
+      .bottom-button {
+        width: 100%;
+        min-width: auto;
+      }
+      
+      footer {
+        padding: 2rem 1rem 1.5rem 1rem;
+        clip-path: ellipse(100% 80% at 50% 100%);
+        border-radius: 40% 40% 0 0;
+        padding-top: 3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- PWAインストールボタン -->
+  <div id="pwa-install-banner" style="display: none; position: fixed; top: 0; left: 0; right: 0; background: linear-gradient(135deg, #4CAF50 0%, #2e7d32 100%); color: white; padding: 1rem; text-align: center; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+    <p style="margin: 0 0 0.5rem 0; font-weight: 600;">このアプリをホーム画面に追加しますか？</p>
+    <button id="pwa-install-btn" style="background: white; color: #4CAF50; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; margin-right: 0.5rem; cursor: pointer;">インストール</button>
+    <button id="pwa-dismiss-btn" style="background: transparent; color: white; border: 1px solid white; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; cursor: pointer;">後で</button>
+  </div>
+  <div class="main-container">
+    <header>
+      <h1>モルック得点計算</h1>
+      <p>リアルタイムで得点を管理しよう</p>
+    </header>
+
+    <div class="container">
+      <div class="player-box">
+        <input type="text" id="name" value="möln Player" onchange="updateName()" placeholder="名前（チーム名）を入力">
+        
+        <div class="score-box" id="score">0 点</div>
+        
+        <div class="turn-display">
+          <p>ターン数：<span id="player-turn">0</span></p>
+        </div>
+        
+        <p id="status"></p>
+        
+        <input type="tel" id="input" placeholder="倒したピン数を入力（例: 1）">
+
+        <div class="button-group">
+          <button onclick="addScore()" id="addBtn">得点追加</button>
+          <button onclick="undoScore()" class="undo">戻る</button>
+        </div>
+      </div>
+
+      <button onclick="resetGame()" class="reset bottom-button">リセット</button>
+      
+      <a href="../index.html" class="home-btn bottom-button">ホームページに戻る</a>
+      
+    </div>
+
+    <footer>
+      <p>&copy; 大東文化大学公認サークル<br> モルックサークル「möln」</p>
+    </footer>
+  </div>
+
+  <script>
+    let player = {
+      name: "möln Player",
+      score: 0,
+      turn: 0,
+      zeroCount: 0,
+      disqualified: false
+    };
+
+    let history = [];
+
+    // PWA対応
+    let deferredPrompt;
+
+    // サービスワーカー登録
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('data:application/javascript;base64,Y29uc3QgQ0FDSEVfTkFNRSA9ICdtb2xra3ktc2NvcmUtdjEnOwpjb25zdCB1cmxzVG9DYWNoZSA9IFsKICAnLi8nLAogICcuL2luZGV4Lmh0bWwnCl07CgpzZWxmLmFkZEV2ZW50TGlzdGVuZXIoJ2luc3RhbGwnLCBldmVudCA9PiB7CiAgZXZlbnQud2FpdFVudGlsKAogICAgY2FjaGVzLm9wZW4oQ0FDSEVfTkFNRSkKICAgICAgLnRoZW4oY2FjaGUgPT4gY2FjaGUuYWRkQWxsKHVybHNUb0NhY2hlKSkKICApOwp9KTsKCnNlbGYuYWRkRXZlbnRMaXN0ZW5lcignZmV0Y2gnLCBldmVudCA9PiB7CiAgZXZlbnQucmVzcG9uZFdpdGgoCiAgICBjYWNoZXMubWF0Y2goZXZlbnQucmVxdWVzdCkKICAgICAgLnRoZW4ocmVzcG9uc2UgPT4gewogICAgICAgIGlmIChyZXNwb25zZSkgewogICAgICAgICAgcmV0dXJuIHJlc3BvbnNlOwogICAgICAgIH0KICAgICAgICByZXR1cm4gZmV0Y2goZXZlbnQucmVxdWVzdCk7CiAgICAgIH0pCiAgKTsKfSk7')
+        .then(() => console.log('Service Worker registered'))
+        .catch(err => console.log('Service Worker registration failed'));
+    }
+
+    // PWAインストールプロンプト
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('pwa-install-banner').style.display = 'block';
+    });
+
+    document.getElementById('pwa-install-btn').addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`User response to the install prompt: ${outcome}`);
+        deferredPrompt = null;
+        document.getElementById('pwa-install-banner').style.display = 'none';
+      }
+    });
+
+    document.getElementById('pwa-dismiss-btn').addEventListener('click', () => {
+      document.getElementById('pwa-install-banner').style.display = 'none';
+    });
+
+    // データの永続化（LocalStorageの代わりにメモリに保存）
+    function saveGameState() {
+      // ブラウザのlocalStorageが使用できない環境のためメモリに保存
+      window.gameState = {
+        player: { ...player },
+        history: [...history]
+      };
+    }
+
+    function loadGameState() {
+      if (window.gameState) {
+        player = { ...window.gameState.player };
+        history = [...window.gameState.history];
+        updateDisplay();
+      }
+    }
+
+    function updateDisplay() {
+      document.getElementById("score").textContent = `${player.score} 点`;
+      document.getElementById("player-turn").textContent = player.turn;
+      document.getElementById("name").value = player.name;
+      
+      if (player.disqualified) {
+        document.getElementById("status").textContent = "失格（0点3回）";
+        document.getElementById("status").className = "disqualified";
+        disableAddButton();
+      } else if (player.score === 50) {
+        document.getElementById("status").textContent = "あなたの勝ちです！";
+        document.getElementById("status").className = "winner";
+        document.getElementById("score").classList.add("score-red");
+        disableAddButton();
+      } else if (player.zeroCount > 0) {
+        document.getElementById("status").textContent = `0点連続 ${player.zeroCount} 回です`;
+        document.getElementById("status").className = "";
+      } else {
+        document.getElementById("status").textContent = "";
+        document.getElementById("status").className = "";
+      }
+    }
+
+    // ページ読み込み時にゲーム状態を復元
+    window.addEventListener('load', loadGameState);
+
+    function updateName() {
+      player.name = document.getElementById("name").value;
+      saveGameState();
+    }
+
+    function addScore() {
+      if (player.disqualified) {
+        alert(`${player.name} は失格しています。`);
+        return;
+      }
+
+      const inputVal = document.getElementById("input").value.trim();
+      const scoreInput = parseInt(inputVal, 10);
+      document.getElementById("input").value = "";
+
+      if (isNaN(scoreInput) || scoreInput < 0) {
+        alert("正しい数字を入力してください。");
+        return;
+      }
+
+      history.push({
+        score: player.score,
+        turn: player.turn,
+        zeroCount: player.zeroCount,
+        disqualified: player.disqualified
+      });
+
+      player.turn++;
+      document.getElementById("player-turn").textContent = player.turn;
+
+      if (scoreInput === 0) {
+        player.zeroCount++;
+        if (player.zeroCount >= 3) {
+          player.disqualified = true;
+          document.getElementById("status").textContent = "失格（0点3回）";
+          document.getElementById("status").className = "disqualified";
+          disableAddButton();
+        } else {
+          document.getElementById("status").textContent = `0点連続 ${player.zeroCount} 回です`;
+          document.getElementById("status").className = "";
+        }
+      } else {
+        player.zeroCount = 0;
+        player.score += scoreInput;
+
+        if (player.score > 50) {
+          player.score = 25;
+        }
+
+        if (player.score === 50) {
+          document.getElementById("status").textContent = "あなたの勝ちです！";
+          document.getElementById("status").className = "winner";
+          document.getElementById("score").classList.add("score-red");
+          disableAddButton();
+        } else {
+          document.getElementById("status").textContent = "";
+          document.getElementById("status").className = "";
+        }
+      }
+
+      document.getElementById("score").textContent = `${player.score} 点`;
+      saveGameState();
+    }
+
+    function disableAddButton() {
+      const addBtn = document.getElementById("addBtn");
+      addBtn.disabled = true;
+      addBtn.classList.add("disabled-btn");
+    }
+
+    function enableAddButton() {
+      const addBtn = document.getElementById("addBtn");
+      addBtn.disabled = false;
+      addBtn.classList.remove("disabled-btn");
+    }
+
+    function undoScore() {
+      if (history.length === 0) {
+        alert("戻す履歴がありません。");
+        return;
+      }
+
+      const lastState = history.pop();
+      player.score = lastState.score;
+      player.turn = lastState.turn;
+      player.zeroCount = lastState.zeroCount;
+      player.disqualified = lastState.disqualified;
+
+      document.getElementById("score").textContent = `${player.score} 点`;
+      document.getElementById("player-turn").textContent = player.turn;
+      document.getElementById("input").value = "";
+      enableAddButton();
+      document.getElementById("score").classList.remove("score-red");
+
+      if (player.disqualified) {
+        document.getElementById("status").textContent = "失格（0点3回）";
+        document.getElementById("status").className = "disqualified";
+      } else if (player.score === 50) {
+        document.getElementById("status").textContent = "あなたの勝ちです！";
+        document.getElementById("status").className = "winner";
+        document.getElementById("score").classList.add("score-red");
+      } else if (player.zeroCount > 0) {
+        document.getElementById("status").textContent = `0点連続 ${player.zeroCount} 回です`;
+        document.getElementById("status").className = "";
+      } else {
+        document.getElementById("status").textContent = "";
+        document.getElementById("status").className = "";
+      }
+      
+      saveGameState();
+    }
+
+    function resetGame() {
+      player.score = 0;
+      player.turn = 0;
+      player.zeroCount = 0;
+      player.disqualified = false;
+      history = [];
+
+      document.getElementById("score").textContent = "0 点";
+      document.getElementById("player-turn").textContent = "0";
+      document.getElementById("status").textContent = "";
+      document.getElementById("status").className = "";
+      document.getElementById("input").value = "";
+      document.getElementById("score").classList.remove("score-red");
+      enableAddButton();
+      
+      saveGameState();
+    }
+
+    // キーボードショートカット
+    document.addEventListener('keydown', function(event) {
+      // Enterキーで得点追加
+      if (event.key === 'Enter' && document.activeElement.id === 'input') {
+        event.preventDefault();
+        addScore();
+      }
+      // Ctrl/Cmd + Z で戻る
+      if ((event.ctrlKey || event.metaKey) && event.key === 'z') {
+        event.preventDefault();
+        undoScore();
+      }
+    });
+
+    // オフライン対応の通知
+    window.addEventListener('online', () => {
+      console.log('オンラインになりました');
+    });
+
+    window.addEventListener('offline', () => {
+      console.log('オフラインになりました');
+    });
+  </script>
+</body>
+</html>
