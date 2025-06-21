@@ -98,10 +98,11 @@
     <a-scene
         id="arScene"
         embedded
-        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3; trackingMethod: best; sourceWidth: 1280; sourceHeight: 960; displayWidth: 1280; displayHeight: 960;"
         vr-mode-ui="enabled: false"
-        renderer="logarithmicDepthBuffer: true;"
-        device-orientation-permission-ui="enabled: false">
+        renderer="logarithmicDepthBuffer: true; antialias: true; colorManagement: true;"
+        device-orientation-permission-ui="enabled: false"
+        background="transparent">
         
         <!-- アセット定義 -->
         <a-assets>
@@ -116,9 +117,11 @@
             id="camera"
             gps-camera
             rotation-reader
-            look-controls="enabled: false"
+            look-controls="enabled: true"
             wasd-controls="enabled: false"
-            position="0 1.6 0">
+            position="0 1.6 0"
+            camera="active: true"
+            ar-camera="sourceType: webcam;">
         </a-camera>
 
         <!-- 3.5m先の赤い線（水平） -->
@@ -187,15 +190,22 @@
             arScene = document.querySelector('#arScene');
             camera = document.querySelector('#camera');
             
-            // AR.jsの準備完了を待つ
+            // ARシーンが読み込まれたら初期化
             arScene.addEventListener('loaded', function() {
                 console.log('AR Scene loaded');
                 initializeAR();
             });
 
-            // カメラの準備完了を待つ
+            // AR.jsが準備完了したら実行
+            arScene.addEventListener('arjs-camera-init', function() {
+                console.log('AR.js camera initialized');
+                isARReady = true;
+                updateInstructions();
+            });
+
+            // カメラストリームが開始されたら実行
             arScene.addEventListener('camera-init', function() {
-                console.log('Camera initialized');
+                console.log('Camera stream started');
                 isARReady = true;
                 updateInstructions();
             });
@@ -267,9 +277,45 @@
         }
 
         // エラーハンドリング
-        navigator.mediaDevices.getUserMedia({ video: true })
+        navigator.mediaDevices.getUserMedia({ 
+            video: { 
+                facingMode: 'environment',
+                width: { ideal: 1280 },
+                height: { ideal: 960 }
+            } 
+        })
             .then(function(stream) {
                 console.log('Camera access granted');
+                
+                // カメラストリームを強制的に表示
+                const video = document.createElement('video');
+                video.style.position = 'fixed';
+                video.style.top = '0';
+                video.style.left = '0';
+                video.style.width = '100vw';
+                video.style.height = '100vh';
+                video.style.objectFit = 'cover';
+                video.style.zIndex = '0';
+                video.autoplay = true;
+                video.playsInline = true;
+                video.muted = true;
+                video.srcObject = stream;
+                
+                document.body.insertBefore(video, document.body.firstChild);
+                
+                // AR.jsのカメラと同期
+                setTimeout(() => {
+                    const arVideo = document.querySelector('video');
+                    if (arVideo && arVideo !== video) {
+                        arVideo.style.zIndex = '0';
+                        arVideo.style.position = 'fixed';
+                        arVideo.style.top = '0';
+                        arVideo.style.left = '0';
+                        arVideo.style.width = '100vw';
+                        arVideo.style.height = '100vh';
+                        arVideo.style.objectFit = 'cover';
+                    }
+                }, 1000);
             })
             .catch(function(error) {
                 console.error('Camera access denied:', error);
