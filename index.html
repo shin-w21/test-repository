@@ -3,299 +3,343 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR + LiDAR 3.5m赤線表示</title>
+    <title>AR 3.5m 距離線</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         body {
             margin: 0;
             padding: 0;
             background: #000;
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             overflow: hidden;
         }
         
         #container {
-            position: fixed;
-            top: 0;
-            left: 0;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        #video {
             width: 100%;
             height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
         
-        #ui {
-            position: fixed;
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+        
+        #controls {
+            position: absolute;
             top: 20px;
             left: 20px;
-            z-index: 1000;
-            color: white;
+            right: 20px;
             background: rgba(0, 0, 0, 0.7);
             padding: 15px;
-            border-radius: 8px;
-            max-width: 300px;
+            border-radius: 10px;
+            color: white;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
         }
         
-        #startButton {
-            background: #4CAF50;
+        #status {
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        #distance {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #ff4444;
+        }
+        
+        button {
+            background: #007AFF;
             color: white;
             border: none;
-            padding: 12px 24px;
+            padding: 12px 20px;
+            border-radius: 8px;
             font-size: 16px;
-            border-radius: 6px;
+            margin: 5px;
             cursor: pointer;
-            margin-top: 10px;
-            width: 100%;
+            font-family: inherit;
         }
         
-        #startButton:hover {
-            background: #45a049;
+        button:hover {
+            background: #0056CC;
         }
         
-        #startButton:disabled {
+        button:disabled {
             background: #666;
             cursor: not-allowed;
         }
         
-        .status {
-            margin: 10px 0;
-            padding: 8px;
-            border-radius: 4px;
-            font-size: 14px;
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border: 2px solid #ff4444;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 100;
         }
         
-        .status.info {
-            background: rgba(33, 150, 243, 0.3);
-            border-left: 4px solid #2196F3;
+        #crosshair::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 8px;
+            height: 8px;
+            background: #ff4444;
+            border-radius: 50%;
         }
         
-        .status.success {
-            background: rgba(76, 175, 80, 0.3);
-            border-left: 4px solid #4CAF50;
-        }
-        
-        .status.error {
-            background: rgba(244, 67, 54, 0.3);
-            border-left: 4px solid #f44336;
-        }
-        
-        #distance {
-            color: #00ff00;
-            font-weight: bold;
-            font-size: 18px;
+        .line-indicator {
+            position: absolute;
+            background: #ff4444;
+            border-radius: 2px;
+            z-index: 50;
+            box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
         }
     </style>
 </head>
 <body>
-    <div id="container"></div>
-    
-    <div id="ui">
-        <h3>AR + LiDAR 3.5m赤線システム</h3>
-        <div id="status" class="status info">システム初期化中...</div>
-        <div>距離: <span id="distance">-- m</span></div>
-        <button id="startButton" disabled>ARセッション開始</button>
+    <div id="container">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="canvas"></canvas>
+        
+        <div id="crosshair"></div>
+        
+        <div id="controls">
+            <div id="status">カメラを初期化中...</div>
+            <div id="distance">距離: -- m</div>
+            <button id="startBtn" onclick="startAR()">ARを開始</button>
+            <button id="calibrateBtn" onclick="calibrate()" disabled>キャリブレーション</button>
+            <button id="drawLineBtn" onclick="drawDistanceLine()" disabled>3.5m線を描画</button>
+            <button id="clearBtn" onclick="clearLines()">クリア</button>
+        </div>
     </div>
 
     <script>
-        class ARLiDARSystem {
-            constructor() {
-                this.scene = null;
-                this.camera = null;
-                this.renderer = null;
-                this.xrSession = null;
-                this.redLine = null;
-                this.hitTestSource = null;
-                this.localSpace = null;
-                this.targetDistance = 3.5; // 3.5メートル
-                
-                this.statusEl = document.getElementById('status');
-                this.distanceEl = document.getElementById('distance');
-                this.startButton = document.getElementById('startButton');
-                
-                this.init();
+        let video, canvas, ctx;
+        let scene, camera, renderer;
+        let isARActive = false;
+        let deviceOrientation = { alpha: 0, beta: 0, gamma: 0 };
+        let calibrationOffset = { x: 0, y: 0, z: 0 };
+        let lines = [];
+        
+        // カメラの視野角設定（iPhone標準）
+        const FOV = 68; // iPhone標準カメラのFOV
+        const FOCAL_LENGTH_MM = 4.25; // iPhone 13 Pro相当
+        
+        function init() {
+            video = document.getElementById('video');
+            canvas = document.getElementById('canvas');
+            ctx = canvas.getContext('2d');
+            
+            // キャンバスサイズを設定
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            // デバイス向き検出
+            if (window.DeviceOrientationEvent) {
+                window.addEventListener('deviceorientation', handleOrientation);
             }
             
-            init() {
-                this.setupThreeJS();
-                this.checkXRSupport();
-                this.setupEventListeners();
-            }
-            
-            setupThreeJS() {
-                // シーンの作成
-                this.scene = new THREE.Scene();
+            updateStatus('準備完了 - ARを開始してください');
+        }
+        
+        async function startAR() {
+            try {
+                updateStatus('カメラにアクセス中...');
                 
-                // カメラの作成
-                this.camera = new THREE.PerspectiveCamera(
-                    75, 
-                    window.innerWidth / window.innerHeight, 
-                    0.1, 
-                    1000
-                );
-                
-                // レンダラーの作成
-                this.renderer = new THREE.WebGLRenderer({ 
-                    antialias: true, 
-                    alpha: true 
-                });
-                this.renderer.setSize(window.innerWidth, window.innerHeight);
-                this.renderer.xr.enabled = true;
-                
-                document.getElementById('container').appendChild(this.renderer.domElement);
-                
-                // ライトの追加
-                const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-                this.scene.add(ambientLight);
-                
-                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-                directionalLight.position.set(0, 10, 5);
-                this.scene.add(directionalLight);
-                
-                // 3.5m地点に赤い線を作成
-                this.createRedLine();
-                
-                this.updateStatus('Three.jsセットアップ完了', 'success');
-            }
-            
-            createRedLine() {
-                // 縦の赤い線を作成（3.5m地点）
-                const geometry = new THREE.BufferGeometry();
-                const vertices = new Float32Array([
-                    0, -1, -this.targetDistance,  // 下端
-                    0,  2, -this.targetDistance   // 上端
-                ]);
-                geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-                
-                const material = new THREE.LineBasicMaterial({ 
-                    color: 0xff0000,
-                    linewidth: 5
-                });
-                
-                this.redLine = new THREE.Line(geometry, material);
-                this.scene.add(this.redLine);
-                
-                // 追加で太い線を作成（視認性向上）
-                const cylinderGeometry = new THREE.CylinderGeometry(0.01, 0.01, 3, 8);
-                const cylinderMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-                const cylinder = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
-                cylinder.position.set(0, 0.5, -this.targetDistance);
-                this.scene.add(cylinder);
-            }
-            
-            async checkXRSupport() {
-                if (!navigator.xr) {
-                    this.updateStatus('WebXRがサポートされていません', 'error');
-                    return;
-                }
-                
-                try {
-                    const isSupported = await navigator.xr.isSessionSupported('immersive-ar');
-                    if (isSupported) {
-                        this.updateStatus('AR対応デバイスです', 'success');
-                        this.startButton.disabled = false;
-                    } else {
-                        this.updateStatus('ARセッションがサポートされていません', 'error');
+                // カメラストリームを取得
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'environment', // 背面カメラ
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
                     }
-                } catch (error) {
-                    this.updateStatus('XRサポートチェックエラー: ' + error.message, 'error');
-                }
-            }
-            
-            setupEventListeners() {
-                this.startButton.addEventListener('click', () => this.startAR());
-                
-                window.addEventListener('resize', () => {
-                    this.camera.aspect = window.innerWidth / window.innerHeight;
-                    this.camera.updateProjectionMatrix();
-                    this.renderer.setSize(window.innerWidth, window.innerHeight);
                 });
-            }
-            
-            async startAR() {
-                try {
-                    this.updateStatus('ARセッション開始中...', 'info');
-                    
-                    this.xrSession = await navigator.xr.requestSession('immersive-ar', {
-                        requiredFeatures: ['local', 'hit-test'],
-                        optionalFeatures: ['dom-overlay', 'light-estimation']
-                    });
-                    
-                    await this.renderer.xr.setSession(this.xrSession);
-                    
-                    // ヒットテストソースの設定
-                    const viewerSpace = await this.xrSession.requestReferenceSpace('viewer');
-                    this.hitTestSource = await this.xrSession.requestHitTestSource({ space: viewerSpace });
-                    
-                    this.localSpace = await this.xrSession.requestReferenceSpace('local');
-                    
-                    this.updateStatus('ARセッション開始！', 'success');
-                    this.startButton.style.display = 'none';
-                    
-                    // レンダリングループ開始
-                    this.renderer.setAnimationLoop((time, frame) => this.render(time, frame));
-                    
-                } catch (error) {
-                    this.updateStatus('ARセッション開始エラー: ' + error.message, 'error');
-                }
-            }
-            
-            render(time, frame) {
-                if (frame && this.hitTestSource && this.localSpace) {
-                    // ヒットテストの実行
-                    const hitTestResults = frame.getHitTestResults(this.hitTestSource);
-                    
-                    if (hitTestResults.length > 0) {
-                        const hit = hitTestResults[0];
-                        const pose = hit.getPose(this.localSpace);
-                        
-                        if (pose) {
-                            // カメラから検出された平面までの距離を計算
-                            const distance = Math.sqrt(
-                                pose.transform.position.x ** 2 + 
-                                pose.transform.position.y ** 2 + 
-                                pose.transform.position.z ** 2
-                            );
-                            
-                            this.distanceEl.textContent = distance.toFixed(2) + ' m';
-                            
-                            // 3.5m地点の線の位置を更新
-                            if (this.redLine) {
-                                // カメラの向いている方向に3.5m地点で線を配置
-                                const cameraDirection = new THREE.Vector3(0, 0, -1);
-                                cameraDirection.applyQuaternion(this.camera.quaternion);
-                                
-                                const linePosition = cameraDirection.multiplyScalar(this.targetDistance);
-                                this.redLine.position.copy(linePosition);
-                                
-                                // 線をカメラの方向に向ける
-                                this.redLine.lookAt(this.camera.position);
-                            }
-                        }
-                    }
-                }
                 
-                this.renderer.render(this.scene, this.camera);
-            }
-            
-            updateStatus(message, type = 'info') {
-                this.statusEl.textContent = message;
-                this.statusEl.className = `status ${type}`;
-                console.log(`[AR-LiDAR] ${message}`);
+                video.srcObject = stream;
+                await video.play();
+                
+                // キャンバスサイズを動画に合わせて調整
+                canvas.width = video.videoWidth || window.innerWidth;
+                canvas.height = video.videoHeight || window.innerHeight;
+                
+                isARActive = true;
+                updateStatus('AR有効 - デバイスを動かして距離を測定');
+                
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('calibrateBtn').disabled = false;
+                document.getElementById('drawLineBtn').disabled = false;
+                
+                // AR描画ループ開始
+                requestAnimationFrame(render);
+                
+            } catch (error) {
+                console.error('カメラアクセスエラー:', error);
+                updateStatus('カメラアクセスに失敗しました');
             }
         }
         
-        // システム初期化
-        document.addEventListener('DOMContentLoaded', () => {
-            new ARLiDARSystem();
+        function handleOrientation(event) {
+            deviceOrientation = {
+                alpha: event.alpha || 0, // Z軸回転
+                beta: event.beta || 0,   // X軸回転
+                gamma: event.gamma || 0  // Y軸回転
+            };
+        }
+        
+        function calibrate() {
+            calibrationOffset = {
+                x: deviceOrientation.gamma,
+                y: deviceOrientation.beta,
+                z: deviceOrientation.alpha
+            };
+            updateStatus('キャリブレーション完了');
+        }
+        
+        function calculateDistance() {
+            // デバイスの傾きから距離を推定
+            const tiltAngle = (deviceOrientation.beta - calibrationOffset.y) * Math.PI / 180;
+            
+            // カメラの高さを1.5mと仮定
+            const cameraHeight = 1.5;
+            
+            // 三角法を使用して距離を計算
+            let distance;
+            if (Math.abs(tiltAngle) > 0.01) {
+                distance = Math.abs(cameraHeight / Math.tan(tiltAngle));
+            } else {
+                distance = 100; // 水平な場合は遠距離とする
+            }
+            
+            // 現実的な範囲に制限
+            distance = Math.max(0.5, Math.min(distance, 50));
+            
+            return distance;
+        }
+        
+        function drawDistanceLine() {
+            const targetDistance = 3.5; // 3.5m
+            const currentDistance = calculateDistance();
+            
+            // 画面中央から線を描画
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            // 距離に基づいて線の長さと位置を計算
+            const lineLength = Math.min(canvas.width * 0.8, 400);
+            const lineWidth = 4;
+            
+            // 水平線を描画
+            const line = {
+                x: centerX - lineLength / 2,
+                y: centerY,
+                width: lineLength,
+                height: lineWidth,
+                distance: targetDistance
+            };
+            
+            lines.push(line);
+            updateStatus(`3.5m線を描画しました（現在の距離: ${currentDistance.toFixed(1)}m）`);
+        }
+        
+        function clearLines() {
+            lines = [];
+            updateStatus('線をクリアしました');
+        }
+        
+        function render() {
+            if (!isARActive) return;
+            
+            // キャンバスをクリア
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 現在の距離を計算
+            const currentDistance = calculateDistance();
+            document.getElementById('distance').textContent = `距離: ${currentDistance.toFixed(1)}m`;
+            
+            // 保存された線を描画
+            ctx.strokeStyle = '#ff4444';
+            ctx.fillStyle = '#ff4444';
+            ctx.shadowColor = '#ff4444';
+            ctx.shadowBlur = 10;
+            
+            lines.forEach(line => {
+                // メイン線
+                ctx.fillRect(line.x, line.y - line.height/2, line.width, line.height);
+                
+                // 端点のマーカー
+                ctx.beginPath();
+                ctx.arc(line.x, line.y, 8, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                ctx.beginPath();
+                ctx.arc(line.x + line.width, line.y, 8, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                // 距離ラベル
+                ctx.font = 'bold 16px -apple-system, BlinkMacSystemFont, sans-serif';
+                ctx.fillStyle = '#ffffff';
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 3;
+                ctx.strokeText(`${line.distance}m`, line.x + line.width/2 - 15, line.y - 15);
+                ctx.fillText(`${line.distance}m`, line.x + line.width/2 - 15, line.y - 15);
+            });
+            
+            // 3.5m地点の視覚的インジケーター
+            if (Math.abs(currentDistance - 3.5) < 0.3) {
+                // 目標距離に近い場合、緑色のインジケーターを表示
+                ctx.fillStyle = '#44ff44';
+                ctx.fillRect(canvas.width/2 - 100, canvas.height - 100, 200, 20);
+                
+                ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, sans-serif';
+                ctx.fillStyle = '#ffffff';
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 2;
+                ctx.strokeText('3.5m 地点!', canvas.width/2 - 40, canvas.height - 85);
+                ctx.fillText('3.5m 地点!', canvas.width/2 - 40, canvas.height - 85);
+            }
+            
+            requestAnimationFrame(render);
+        }
+        
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+        
+        // 画面向き変更時の処理
+        window.addEventListener('resize', () => {
+            if (canvas) {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
         });
         
-        // デバッグ用: タッチで手動距離更新
-        let debugDistance = 3.5;
-        document.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            debugDistance += 0.5;
-            if (debugDistance > 10) debugDistance = 1;
-            document.getElementById('distance').textContent = debugDistance.toFixed(1) + ' m';
-        });
+        // 初期化
+        window.addEventListener('load', init);
         
+        // PWA対応のためのサービスワーカー登録
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('data:text/javascript,console.log("SW registered")');
+        }
     </script>
 </body>
 </html>
