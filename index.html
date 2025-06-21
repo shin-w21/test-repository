@@ -1,809 +1,302 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>モルックサークル「möln」</title>
-  <link rel="icon" type="image/png" href="photo/favicon.ico" />
-
-   <!-- PWA設定 -->
-    <meta name="theme-color" content="#4CAF50" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="möln" />
-    <link rel="apple-touch-icon" href="photo/IMG_0003.jpeg" />
-    <link rel="manifest" href="manifest.json" />
-
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    /* ローディング画面 */
-    .loading-screen {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(135deg, #4CAF50 0%, #2e7d32 100%);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-      transition: opacity 0.5s ease, visibility 0.5s ease;
-    }
-
-    .loading-screen.hidden {
-      opacity: 0;
-      visibility: hidden;
-    }
-
-    .loading-icon-container {
-      position: relative;
-      margin-bottom: 2rem;
-      animation: iconFloat 2s ease-in-out infinite alternate;
-    }
-
-    .loading-icon {
-      width: 120px;
-      height: 120px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 4px solid rgba(255, 255, 255, 0.3);
-      box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
-      animation: iconPulse 2s ease-in-out infinite;
-    }
-
-    @keyframes iconFloat {
-      0% { transform: translateY(0); }
-      100% { transform: translateY(-10px); }
-    }
-
-    @keyframes iconPulse {
-      0%, 100% { 
-        box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
-        border-color: rgba(255, 255, 255, 0.3);
-      }
-      50% { 
-        box-shadow: 0 0 50px rgba(255, 255, 255, 0.6);
-        border-color: rgba(255, 255, 255, 0.6);
-      }
-    }
-
-    .loading-spinner-ring {
-      position: absolute;
-      top: -10px;
-      left: -10px;
-      width: 140px;
-      height: 140px;
-      border: 3px solid transparent;
-      border-top: 3px solid white;
-      border-right: 3px solid rgba(255, 255, 255, 0.6);
-      border-radius: 50%;
-      animation: spin 2s linear infinite;
-    }
-
-    .loading-spinner-ring::after {
-      content: '';
-      position: absolute;
-      top: -6px;
-      left: -6px;
-      width: 140px;
-      height: 140px;
-      border: 2px solid transparent;
-      border-top: 2px solid rgba(255, 255, 255, 0.4);
-      border-radius: 50%;
-      animation: spin 3s linear infinite reverse;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .loading-logo {
-      color: white;
-      font-size: 1.3rem;
-      font-weight: 700;
-      margin-bottom: 1rem;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-      opacity: 0;
-      animation: logoFadeIn 1s ease-in-out 0.5s forwards;
-    }
-
-    @keyframes logoFadeIn {
-      0% { opacity: 0; transform: translateY(20px); }
-      100% { opacity: 1; transform: translateY(0); }
-    }
-
-    .loading-text {
-      color: white;
-      font-size: 1.2rem;
-      font-weight: 300;
-      opacity: 0;
-      animation: textFadeIn 1s ease-in-out 1s forwards, textPulse 2s ease-in-out 1s infinite;
-    }
-
-    @keyframes textFadeIn {
-      0% { opacity: 0; }
-      100% { opacity: 0.9; }
-    }
-
-    @keyframes textPulse {
-      0%, 100% { opacity: 0.6; }
-      50% { opacity: 1; }
-    }
-
-    .loading-dots {
-      display: inline-block;
-      width: 80px;
-      text-align: left;
-    }
-
-    .loading-dots::after {
-      content: '';
-      animation: dots 2s infinite;
-    }
-
-    @keyframes dots {
-      0%, 20% { content: ''; }
-      40% { content: '.'; }
-      60% { content: '..'; }
-      80%, 100% { content: '...'; }
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-      line-height: 1.7;
-      color: #333;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-    }
-
-    .main-container {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      min-height: 100vh;
-    }
-
-    header {
-      background: linear-gradient(135deg, #4CAF50 0%, #2e7d32 100%);
-      color: white;
-      padding: 5rem 2rem 8rem 2rem;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-      clip-path: ellipse(100% 100% at 50% 0%);
-      margin-bottom: -3rem;
-      border-radius: 0 0 50% 50%;
-    }
-
-    header::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: 
-        radial-gradient(circle at 30% 70%, rgba(255,255,255,0.15) 0%, transparent 40%),
-        radial-gradient(circle at 70% 30%, rgba(255,255,255,0.15) 0%, transparent 40%),
-        radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, transparent 60%);
-      animation: pulse 6s ease-in-out infinite alternate;
-    }
-
-    header::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: 
-        radial-gradient(circle at 20% 20%, rgba(255,255,255,0.08) 20%, transparent 20%),
-        radial-gradient(circle at 80% 80%, rgba(255,255,255,0.08) 15%, transparent 15%),
-        radial-gradient(circle at 40% 90%, rgba(255,255,255,0.08) 25%, transparent 25%);
-      background-size: 100px 100px, 80px 80px, 120px 120px;
-      animation: floatCircles 20s infinite linear;
-    }
-
-    @keyframes floatCircles {
-      0% { 
-        background-position: 0 0, 0 0, 0 0;
-        transform: rotate(0deg);
-      }
-      100% { 
-        background-position: 100px 100px, -80px -80px, 120px -120px;
-        transform: rotate(360deg);
-      }
-    }
-
-    @keyframes pulse {
-      0% { opacity: 0.5; }
-      100% { opacity: 1; }
-    }
-
-    header h1 {
-      font-size: 3.5rem;
-      font-weight: 700;
-      margin-bottom: 1rem;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-      position: relative;
-      z-index: 2;
-    }
-
-    header p {
-      font-size: 1.3rem;
-      opacity: 0.95;
-      position: relative;
-      z-index: 2;
-      font-weight: 300;
-    }
-
-    .container {
-      padding: 6rem 2rem 3rem 2rem;
-      max-width: 1000px;
-      margin: auto;
-    }
-
-    section {
-      margin-bottom: 4rem;
-      background: white;
-      padding: 2.5rem;
-      border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      position: relative;
-      overflow: hidden;
-    }
-
-    @keyframes shimmer {
-      0%, 100% { background-position: -200% 0; }
-      50% { background-position: 200% 0; }
-    }
-
-    section:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-    }
-
-    h2 {
-      color: #2e7d32;
-      font-size: 1.8rem;
-      margin-bottom: 1.5rem;
-      font-weight: 600;
-      position: relative;
-      padding-left: 1rem;
-    }
-
-    h2::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 4px;
-      height: 100%;
-      background: linear-gradient(180deg, #4CAF50, #2e7d32);
-      border-radius: 2px;
-    }
-
-    p {
-      font-size: 1.1rem;
-      margin-bottom: 1.5rem;
-      color: #555;
-    }
-
-    ul {
-      list-style: none;
-      padding-left: 0;
-    }
-
-    ul li {
-      position: relative;
-      padding: 0.8rem 0 0.8rem 2rem;
-      margin-bottom: 0.5rem;
-      background: rgba(76, 175, 80, 0.05);
-      border-radius: 10px;
-      transition: all 0.3s ease;
-    }
-
-    ul li::before {
-      content: '✓';
-      position: absolute;
-      left: 0.7rem;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #4CAF50;
-      font-weight: bold;
-      font-size: 1.2rem;
-    }
-
-    ul li:hover {
-      background: rgba(76, 175, 80, 0.1);
-      transform: translateX(5px);
-    }
-
-    /* 隠されたアイテム */
-    .hidden-item {
-      display: none;
-    }
-
-    /* リンクボタンスタイル */
-    .link-button {
-      display: block;
-      position: relative;
-      padding: 1rem 2rem;
-      margin-bottom: 0.8rem;
-      background: linear-gradient(135deg, #4CAF50 0%, #2e7d32 100%);
-      color: white;
-      text-decoration: none;
-      border-radius: 15px;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
-      overflow: hidden;
-      font-weight: 500;
-      text-align: left;
-    }
-
-    .link-button::after {
-      content: none;
-    }
-
-    .link-button::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-      transition: left 0.5s;
-    }
-
-    .link-button:hover::before {
-      left: 100%;
-    }
-
-    .link-button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(76, 175, 80, 0.4);
-      color: white;
-    }
-
-    .link-button .arrow {
-      position: absolute;
-      right: 1.5rem;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 1.2rem;
-      transition: transform 0.3s ease;
-    }
-
-    .link-button:hover .arrow {
-      transform: translateY(-50%) translateX(5px);
-    }
-
-    .gallery {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 1.5rem;
-      margin-top: 2rem;
-    }
-
-    .gallery img {
-      width: 100%;
-      height: 250px;
-      object-fit: cover;
-      border-radius: 15px;
-      transition: all 0.3s ease;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    }
-
-    .gallery img:hover {
-      transform: scale(1.05) rotate(1deg);
-      box-shadow: 0 15px 30px rgba(0,0,0,0.2);
-    }
-
-    .score-link {
-      display: inline-block;
-      background: linear-gradient(135deg, #4CAF50 0%, #2e7d32 100%);
-      color: white;
-      padding: 1rem 2rem;
-      font-size: 1rem;
-      border-radius: 50px;
-      text-decoration: none;
-      font-weight: 600;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .score-link::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-      transition: left 0.5s;
-    }
-
-    .score-link:hover::before {
-      left: 100%;
-    }
-
-    .score-link:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(76, 175, 80, 0.4);
-    }
-
-    /* ボタンスタイル統一 */
-    button.score-link {
-      border: none;
-      cursor: pointer;
-      font-family: inherit;
-    }
-
-    button.score-link:focus {
-      outline: 2px solid rgba(76, 175, 80, 0.5);
-      outline-offset: 2px;
-    }
-
-    .link-container {
-      text-align: right;
-      margin-top: 2rem;
-    }
-
-    footer {
-      background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
-      color: white;
-      text-align: center;
-      padding: 4rem 2rem 3rem 2rem;
-      margin-top: 4rem;
-      position: relative;
-      clip-path: ellipse(100% 100% at 50% 100%);
-      padding-top: 5rem;
-      border-radius: 50% 50% 0 0;
-      overflow: hidden;
-    }
-
-    footer::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: 
-        radial-gradient(circle at 30% 70%, rgba(255,255,255,0.15) 0%, transparent 40%),
-        radial-gradient(circle at 70% 30%, rgba(255,255,255,0.15) 0%, transparent 40%),
-        radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, transparent 60%);
-      animation: pulse 6s ease-in-out infinite alternate;
-    }
-
-    footer::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: 
-        radial-gradient(circle at 20% 20%, rgba(255,255,255,0.08) 20%, transparent 20%),
-        radial-gradient(circle at 80% 80%, rgba(255,255,255,0.08) 15%, transparent 15%),
-        radial-gradient(circle at 40% 90%, rgba(255,255,255,0.08) 25%, transparent 25%);
-      background-size: 100px 100px, 80px 80px, 120px 120px;
-      animation: floatCircles 20s infinite linear;
-    }
-
-    footer p {
-      position: relative;
-      z-index: 2;
-      color: white;
-    }
-
-    a {
-      color: #2e7d32;
-      text-decoration: none;
-      font-weight: 500;
-      transition: all 0.3s ease;
-      position: relative;
-    }
-
-    a::after {
-      content: '';
-      position: absolute;
-      width: 0;
-      height: 2px;
-      bottom: -2px;
-      left: 0;
-      background: linear-gradient(90deg, #4CAF50, #2e7d32);
-      transition: width 0.3s ease;
-    }
-
-    a:hover::after {
-      width: 100%;
-    }
-
-    a:hover {
-      color: #4CAF50;
-    }
-
-    .spacer {
-      height: 2rem;
-    }
-
-    /* スクロールアニメーション */
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(30px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    section {
-      animation: fadeInUp 0.6s ease forwards;
-    }
-
-    /* レスポンシブ対応 */
-    @media (max-width: 768px) {
-      header {
-        padding: 3rem 1rem 6rem 1rem;
-        clip-path: ellipse(100% 80% at 50% 0%);
-        border-radius: 0 0 40% 40%;
-      }
-      
-      header h1 {
-        font-size: 1.8rem;
-      }
-      
-      header p {
-        font-size: 1.1rem;
-      }
-      
-      .container {
-        padding: 4rem 1rem 2rem 1rem;
-      }
-      
-      section {
-        padding: 2rem 1.5rem;
-      }
-      
-      .gallery {
-        grid-template-columns: 1fr;
-      }
-      
-      .link-container {
-        text-align: center;
-      }
-      
-      footer {
-        padding: 3rem 1rem 2rem 1rem;
-        clip-path: ellipse(100% 80% at 50% 100%);
-        border-radius: 40% 40% 0 0;
-        padding-top: 4rem;
-      }
-
-      ::-webkit-scrollbar {
-       width: 8px;
-      }
-
-      ::-webkit-scrollbar-track {
-       background: rgba(255, 255, 255, 0.1);
-      }
-
-      ::-webkit-scrollbar-thumb {
-       background: linear-gradient(135deg, #4CAF50, #2e7d32);
-       border-radius: 4px;
-      }
-
-      ::-webkit-scrollbar-thumb:hover {
-       background: linear-gradient(135deg, #2e
-      }
-
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR距離測定 - 3.5m先に赤い線</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.0/aframe.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ar.js/2.2.2/aframe-ar.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        
+        .ui-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        
+        .instructions {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .distance-info {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 0, 0, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .error {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 0, 0, 0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 300px;
+        }
+        
+        #arScene {
+            width: 100%;
+            height: 100vh;
+        }
+    </style>
 </head>
 <body>
-  <!-- ローディング画面 -->
-  <div class="loading-screen" id="loadingScreen">
-    <div class="loading-icon-container">
-      <img src="./photo/icon.jpeg" alt="möln logo" class="loading-icon">
-      <div class="loading-spinner-ring"></div>
-    </div>
-    <div class="loading-logo"> 投げて笑って、mölnしよう｡</div>
-  </div>
-
-  <div class="main-container">
-    <header>
-      <h1>モルックサークル「möln」</h1>
-      <p>投げて笑って、mölnしよう。</p>
-    </header>
-
-    <div class="container">
-      <section id="about">
-        <h2>サークル紹介</h2>
-        <p>
-          モルックサークル「möln」は2024年4月から活動始めたサークルで、フィンランドのスポーツ「モルック」を行っています。
-          部員全員の仲が良く、常に和気あいあいとしているのも魅力の1つです。「運動はしたいけど激しいのは苦手だな…」そんな人にこそピッタリ！一緒にモルックを楽しみましょう！
-        </p>
-      </section>
-
-      <div class="spacer"></div>
-
-      <section id="schedule">
-        <h2>活動について</h2>
-        <p>活動はとても自由。大学の空きコマや放課後の時間があるときに、できる人が集まって練習しています。大会や練習会などにも、順次参加しています。<br>主な練習場所は以下の通りです！</p>
-        <ul>
-          <li>板橋キャンパス 部室棟４階</li>
-          <li>東松山キャンパス近くの公園</li>
-        </ul>
-      </section>
-
-      <div class="spacer"></div>
-
-      <section id="record">
-        <h2>大会・イベント参加実績</h2>
-        <p>モルックサークル「möln」は様々な大会やイベントに参加しています！</p>
-        <ul id="recordList">
-          <li>モルックビギナーズ大会 inちば</li>
-          <li>第７回幕張海浜公園Team Kiitosカップ 〜チーム戦〜</li>
-          <li>第100回大東祭</li>
-          <li>関東大学モルック交流会 横川カップ</li>
-          <li class="hidden-item">第３回幕張海浜公園Team Kiitosカップ 〜チーム戦〜</li>
-          <li class="hidden-item">第１回幕張海浜公園Team Kiitosカップ 〜チーム戦〜</li>
-        </ul>
-        <div class="link-container">
-          <button class="score-link" id="showMoreBtn" onclick="toggleRecordList()">もっと見る</button>
+    <div class="ui-overlay">
+        <div class="instructions">
+            <h3>📍 AR距離測定</h3>
+            <p>カメラを有効にして、デバイスを水平に持ってください。<br>
+            あなたの前方3.5m先に赤い線が表示されます。</p>
         </div>
-      </section>
-
-      <div class="spacer"></div>
-
-      <section id="gallery">
-        <h2>写真ギャラリー</h2>
-        <div class="gallery">
-          <img src="./photo/IMG_0001.jpeg" alt="photo01" />
-          <img src="./photo/IMG_0002.jpeg" alt="photo02" />
-          <img src="./photo/IMG_0003.jpeg" alt="photo_icon" />
-        </div>
-      </section>
-
-      <div class="spacer"></div>
-
-      <section id="score">
-        <h2>モルック得点計算</h2>
-        <p>モルックの練習中に便利な得点計算ツールはこちらからアクセスできます。</p>
-        <div class="link-container">
-          <a class="score-link" onclick="location.href='./contents/score.html'">得点計算ページへ</a>
-        </div>
-      </section>
-
-      <div class="spacer"></div>
-
-
-      <section id="contact">
-        <h2>お問い合わせ・SNS</h2>
-        <p>ご質問・参加希望などは以下のSNSよりご連絡ください。</p>
-        <div>
-          <a class="link-button" href="https://instagram.com/dbu_molkky" target="_blank">
-            公式Instagramはこちら！
-            <span class="arrow">→</span>
-          </a>
-          <a class="link-button" href="https://twitter.com/dbu_molkky" target="_blank">
-            公式Xはこちら
-            <span class="arrow">→</span>
-          </a>
-          <a class="link-button" href="https://line.me/R/ti/p/@413roggq" target="_blank">
-            公式LINEはこちら！
-            <span class="arrow">→</span>
-          </a>
-        </div>
-      </section>
-
-      <div class="spacer"></div>
-
-      <section id="links">
-        <h2>関連リンク</h2>
-        <p>このサークルに関連するその他のリンクはこちらです。</p>
-        <div>
-          <a class="link-button" href="https://www.daito.ac.jp" target="_blank">
-            大東文化大学ホームページ
-            <span class="arrow">→</span>
-          </a>
-          <a class="link-button" href="https://www.daito.ac.jp/campuslife/club/culture/details_43238.html" target="_blank">
-            サークル紹介ページ
-            <span class="arrow">→</span>
-          </a>
-          <a class="link-button" href="https://dbu-molkky.github.io/ob-homepage/" target="_blank">
-            モルックサークル「möln」OB会
-            <span class="arrow">→</span>
-          </a>
-        </div>
-      </section>
-    </div>
-
-    <footer>
-      <p>&copy; 大東文化大学公認サークル<br> モルックサークル「möln」</p>
-    </footer>
-  </div>
-
-  <script>
-    // ローディング画面の制御
-    window.addEventListener('load', function() {
-      const loadingScreen = document.getElementById('loadingScreen');
-      
-      // 3秒間はローディング画面を表示
-      setTimeout(function() {
-        loadingScreen.classList.add('hidden');
         
-        // ローディング画面が完全に消えたら要素を削除
-        setTimeout(function() {
-          loadingScreen.remove();
-        }, 500);
-      }, 3000);
-    });
+        <div class="distance-info">
+            🎯 3.5m先の位置
+        </div>
+        
+        <div class="controls">
+            <p>📱 デバイスを回転させて周囲を確認できます</p>
+        </div>
+    </div>
 
-    // 画像の遅延読み込み完了を待つ
-    document.addEventListener('DOMContentLoaded', function() {
-      const images = document.querySelectorAll('img');
-      let loadedImages = 0;
-      
-      if (images.length === 0) return;
-      
-      images.forEach(function(img) {
-        if (img.complete) {
-          loadedImages++;
-        } else {
-          img.addEventListener('load', function() {
-            loadedImages++;
-            checkAllImagesLoaded();
-          });
-          img.addEventListener('error', function() {
-            loadedImages++;
-            checkAllImagesLoaded();
-          });
-        }
-      });
-      
-      function checkAllImagesLoaded() {
-        if (loadedImages === images.length) {
-          // 全ての画像が読み込まれた後でも、3秒は表示し続ける
-          // 画像読み込み完了による早期終了は行わない
-        }
-      }
-      
-      // 初期チェック
-      checkAllImagesLoaded();
-    });
+    <a-scene
+        id="arScene"
+        embedded
+        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+        vr-mode-ui="enabled: false"
+        renderer="logarithmicDepthBuffer: true;"
+        device-orientation-permission-ui="enabled: false">
+        
+        <!-- アセット定義 -->
+        <a-assets>
+            <a-mixin id="redLine" 
+                     geometry="primitive: box; width: 4; height: 0.1; depth: 0.1"
+                     material="color: #ff0000; opacity: 0.8; transparent: true">
+            </a-mixin>
+        </a-assets>
 
-    // 大会・イベント実績の表示切り替え
-    function toggleRecordList() {
-      const hiddenItems = document.querySelectorAll('#recordList .hidden-item');
-      const showMoreBtn = document.getElementById('showMoreBtn');
-      const isHidden = hiddenItems[0].style.display === 'none' || hiddenItems[0].style.display === '';
-      
-      hiddenItems.forEach(function(item) {
-        if (isHidden) {
-          item.style.display = 'block';
-        } else {
-          item.style.display = 'none';
+        <!-- カメラ -->
+        <a-camera
+            id="camera"
+            gps-camera
+            rotation-reader
+            look-controls="enabled: false"
+            wasd-controls="enabled: false"
+            position="0 1.6 0">
+        </a-camera>
+
+        <!-- 3.5m先の赤い線（水平） -->
+        <a-entity
+            id="horizontalLine"
+            mixin="redLine"
+            position="0 1.6 -3.5"
+            rotation="0 0 0"
+            visible="true">
+        </a-entity>
+
+        <!-- 3.5m先の赤い線（垂直） -->
+        <a-entity
+            id="verticalLine"
+            geometry="primitive: box; width: 0.1; height: 4; depth: 0.1"
+            material="color: #ff0000; opacity: 0.8; transparent: true"
+            position="0 1.6 -3.5"
+            rotation="0 0 0"
+            visible="true">
+        </a-entity>
+
+        <!-- 距離を示すテキスト -->
+        <a-text
+            id="distanceText"
+            value="3.5m"
+            position="0 2.5 -3.5"
+            align="center"
+            color="#ffffff"
+            geometry="primitive: plane; width: 2; height: 0.5"
+            material="color: #000000; opacity: 0.7; transparent: true"
+            text="align: center; color: #ffffff; font: arial; width: 8">
+        </a-text>
+
+        <!-- 中心点マーカー -->
+        <a-entity
+            id="centerMarker"
+            geometry="primitive: sphere; radius: 0.05"
+            material="color: #ffff00; emissive: #ffff00"
+            position="0 1.6 -3.5">
+        </a-entity>
+
+        <!-- 地面の参照平面 -->
+        <a-plane
+            id="groundPlane"
+            position="0 0 -3.5"
+            rotation="-90 0 0"
+            width="10"
+            height="10"
+            color="#333333"
+            opacity="0.1"
+            transparent="true">
+        </a-plane>
+
+        <!-- 照明 -->
+        <a-light type="ambient" color="#ffffff" intensity="0.5"></a-light>
+        <a-light type="directional" color="#ffffff" intensity="0.8" position="0 5 5"></a-light>
+    </a-scene>
+
+    <script>
+        let arScene;
+        let camera;
+        let isARReady = false;
+
+        // AR.jsとA-Frameの初期化を待つ
+        document.addEventListener('DOMContentLoaded', function() {
+            arScene = document.querySelector('#arScene');
+            camera = document.querySelector('#camera');
+            
+            // AR.jsの準備完了を待つ
+            arScene.addEventListener('loaded', function() {
+                console.log('AR Scene loaded');
+                initializeAR();
+            });
+
+            // カメラの準備完了を待つ
+            arScene.addEventListener('camera-init', function() {
+                console.log('Camera initialized');
+                isARReady = true;
+                updateInstructions();
+            });
+        });
+
+        function initializeAR() {
+            // デバイスの向きが変わったときの処理
+            window.addEventListener('deviceorientation', function(event) {
+                if (isARReady) {
+                    updateLinePosition(event);
+                }
+            });
+
+            // 定期的に位置を更新
+            setInterval(updateDisplay, 100);
         }
-      });
-      
-      showMoreBtn.textContent = isHidden ? '表示を減らす' : 'もっと見る';
-    }
-  </script>
+
+        function updateLinePosition(orientationEvent) {
+            const alpha = orientationEvent.alpha || 0; // コンパス方向
+            const beta = orientationEvent.beta || 0;   // 前後の傾き
+            const gamma = orientationEvent.gamma || 0; // 左右の傾き
+
+            // デバイスの向きに基づいて線の位置を調整
+            const horizontalLine = document.querySelector('#horizontalLine');
+            const verticalLine = document.querySelector('#verticalLine');
+            const distanceText = document.querySelector('#distanceText');
+            const centerMarker = document.querySelector('#centerMarker');
+
+            if (horizontalLine && verticalLine) {
+                // 3.5m先の位置を計算（デバイスの向きを考慮）
+                const distance = 3.5;
+                const x = Math.sin(alpha * Math.PI / 180) * distance;
+                const z = -Math.cos(alpha * Math.PI / 180) * distance;
+                const y = 1.6 + Math.tan(beta * Math.PI / 180) * distance;
+
+                const newPosition = `${x.toFixed(2)} ${y.toFixed(2)} ${z.toFixed(2)}`;
+                
+                horizontalLine.setAttribute('position', newPosition);
+                verticalLine.setAttribute('position', newPosition);
+                distanceText.setAttribute('position', `${x.toFixed(2)} ${(y + 0.9).toFixed(2)} ${z.toFixed(2)}`);
+                centerMarker.setAttribute('position', newPosition);
+            }
+        }
+
+        function updateDisplay() {
+            if (!isARReady) return;
+
+            // 現在の向きを取得して表示を更新
+            const camera = document.querySelector('#camera');
+            if (camera) {
+                const rotation = camera.getAttribute('rotation');
+                const position = camera.getAttribute('position');
+                
+                // デバッグ情報を更新（必要に応じて）
+                console.log('Camera rotation:', rotation);
+                console.log('Camera position:', position);
+            }
+        }
+
+        function updateInstructions() {
+            const instructions = document.querySelector('.instructions');
+            if (instructions && isARReady) {
+                instructions.innerHTML = `
+                    <h3>✅ AR準備完了</h3>
+                    <p>デバイスを水平に持ち、ゆっくりと回転させてください。<br>
+                    赤い線があなたの前方3.5m先に表示されます。</p>
+                `;
+            }
+        }
+
+        // エラーハンドリング
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(function(stream) {
+                console.log('Camera access granted');
+            })
+            .catch(function(error) {
+                console.error('Camera access denied:', error);
+                document.body.innerHTML = `
+                    <div class="error">
+                        <h3>⚠️ カメラアクセスエラー</h3>
+                        <p>ARを使用するにはカメラへのアクセスが必要です。<br>
+                        ブラウザの設定でカメラを許可してください。</p>
+                        <p>HTTPSで接続されていることも確認してください。</p>
+                    </div>
+                `;
+            });
+
+        // デバイスの向きセンサーの許可を要求（iOS 13+）
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+            DeviceOrientationEvent.requestPermission()
+                .then(function(response) {
+                    if (response === 'granted') {
+                        console.log('Device orientation permission granted');
+                    } else {
+                        console.warn('Device orientation permission denied');
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Device orientation permission error:', error);
+                });
+        }
+    </script>
 </body>
 </html>
