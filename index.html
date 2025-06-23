@@ -3,78 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR 3.5m 距離線</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <title>AR 3.5m距離マーカー</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.0/aframe.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ar.js/2.2.2/aframe-ar.min.js"></script>
     <style>
         body {
             margin: 0;
-            padding: 0;
-            background: #000;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            overflow: hidden;
+            font-family: Arial, sans-serif;
         }
         
-        #container {
-            width: 100vw;
-            height: 100vh;
-            position: relative;
-        }
-        
-        #video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-        
-        #canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            pointer-events: none;
-        }
-        
-        #controls {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.7);
+        .info-panel {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
             padding: 15px;
             border-radius: 10px;
-            color: white;
-            backdrop-filter: blur(10px);
+            z-index: 1000;
+            max-width: 300px;
+        }
+        
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
             z-index: 1000;
         }
         
-        #status {
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
-        
-        #distance {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #ff4444;
-        }
-        
         button {
-            background: #007AFF;
+            background: #ff4444;
             color: white;
             border: none;
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-size: 16px;
+            padding: 10px 20px;
             margin: 5px;
+            border-radius: 5px;
             cursor: pointer;
-            font-family: inherit;
+            font-size: 14px;
         }
         
         button:hover {
-            background: #0056CC;
+            background: #cc3333;
         }
         
         button:disabled {
@@ -82,264 +55,254 @@
             cursor: not-allowed;
         }
         
-        #crosshair {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 40px;
-            height: 40px;
-            border: 2px solid #ff4444;
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 100;
+        .status {
+            color: #4CAF50;
+            font-weight: bold;
         }
         
-        #crosshair::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 8px;
-            height: 8px;
-            background: #ff4444;
-            border-radius: 50%;
-        }
-        
-        .line-indicator {
-            position: absolute;
-            background: #ff4444;
-            border-radius: 2px;
-            z-index: 50;
-            box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+        .error {
+            color: #ff4444;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <div id="container">
-        <video id="video" autoplay playsinline muted></video>
-        <canvas id="canvas"></canvas>
-        
-        <div id="crosshair"></div>
-        
-        <div id="controls">
-            <div id="status">カメラを初期化中...</div>
-            <div id="distance">距離: -- m</div>
-            <button id="startBtn" onclick="startAR()">ARを開始</button>
-            <button id="calibrateBtn" onclick="calibrate()" disabled>キャリブレーション</button>
-            <button id="drawLineBtn" onclick="drawDistanceLine()" disabled>3.5m線を描画</button>
-            <button id="clearBtn" onclick="clearLines()">クリア</button>
-        </div>
+    <div class="info-panel">
+        <h3>AR 3.5m距離マーカー</h3>
+        <div id="status">ARを開始する準備ができました</div>
+        <div>📍 現在位置から3.5m先に赤い線が表示されます</div>
+        <div>🧭 デバイスを水平に持って周りを見回してください</div>
+    </div>
+    
+    <div class="controls">
+        <button id="startAR">ARを開始</button>
+        <button id="resetPosition" disabled>位置をリセット</button>
+        <button id="toggleLine" disabled>線の表示切替</button>
     </div>
 
+    <a-scene
+        id="arScene"
+        embedded
+        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+        vr-mode-ui="enabled: false"
+        renderer="logarithmicDepthBuffer: true;"
+        style="display: none;"
+    >
+        <!-- アセット定義 -->
+        <a-assets>
+            <a-mixin id="redMaterial" material="color: #ff0000; opacity: 0.8;"></a-mixin>
+        </a-assets>
+        
+        <!-- カメラ -->
+        <a-camera
+            id="camera"
+            position="0 1.6 0"
+            look-controls="enabled: true"
+            wasd-controls="enabled: false"
+        >
+        </a-camera>
+        
+        <!-- ライト -->
+        <a-light type="ambient" color="#ffffff" intensity="0.6"></a-light>
+        <a-light type="directional" position="0 5 0" color="#ffffff" intensity="0.4"></a-light>
+        
+        <!-- 3.5m地点の赤い線とマーカー -->
+        <a-entity id="distanceMarkers">
+            <!-- 前方3.5m地点の垂直な赤い線 -->
+            <a-box
+                id="frontLine"
+                position="0 0 -3.5"
+                width="0.05"
+                height="2"
+                depth="0.05"
+                mixin="redMaterial"
+                animation="property: rotation; to: 0 360 0; loop: true; dur: 4000"
+            ></a-box>
+            
+            <!-- 左側3.5m地点の垂直な赤い線 -->
+            <a-box
+                id="leftLine"
+                position="-3.5 0 0"
+                width="0.05"
+                height="2"
+                depth="0.05"
+                mixin="redMaterial"
+                animation="property: rotation; to: 0 360 0; loop: true; dur: 4000"
+            ></a-box>
+            
+            <!-- 右側3.5m地点の垂直な赤い線 -->
+            <a-box
+                id="rightLine"
+                position="3.5 0 0"
+                width="0.05"
+                height="2"
+                depth="0.05"
+                mixin="redMaterial"
+                animation="property: rotation; to: 0 360 0; loop: true; dur: 4000"
+            ></a-box>
+            
+            <!-- 後方3.5m地点の垂直な赤い線 -->
+            <a-box
+                id="backLine"
+                position="0 0 3.5"
+                width="0.05"
+                height="2"
+                depth="0.05"
+                mixin="redMaterial"
+                animation="property: rotation; to: 0 360 0; loop: true; dur: 4000"
+            ></a-box>
+            
+            <!-- 3.5m円周上の円形ガイド -->
+            <a-torus
+                id="distanceCircle"
+                position="0 0 0"
+                color="#ff0000"
+                radius="3.5"
+                radius-tubular="0.02"
+                opacity="0.6"
+                rotation="-90 0 0"
+            ></a-torus>
+            
+            <!-- 中心点マーカー -->
+            <a-sphere
+                id="centerMarker"
+                position="0 0 0"
+                radius="0.1"
+                color="#00ff00"
+                opacity="0.8"
+                animation="property: scale; to: 1.2 1.2 1.2; direction: alternate; loop: true; dur: 1000"
+            ></a-sphere>
+            
+            <!-- 距離表示テキスト（前方） -->
+            <a-text
+                position="0 2.5 -3.5"
+                value="3.5m"
+                color="#ff0000"
+                align="center"
+                width="8"
+                look-at="#camera"
+            ></a-text>
+        </a-entity>
+    </a-scene>
+
     <script>
-        let video, canvas, ctx;
-        let scene, camera, renderer;
-        let isARActive = false;
-        let deviceOrientation = { alpha: 0, beta: 0, gamma: 0 };
-        let calibrationOffset = { x: 0, y: 0, z: 0 };
-        let lines = [];
-        
-        // カメラの視野角設定（iPhone標準）
-        const FOV = 68; // iPhone標準カメラのFOV
-        const FOCAL_LENGTH_MM = 4.25; // iPhone 13 Pro相当
-        
-        function init() {
-            video = document.getElementById('video');
-            canvas = document.getElementById('canvas');
-            ctx = canvas.getContext('2d');
-            
-            // キャンバスサイズを設定
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            
-            // デバイス向き検出
-            if (window.DeviceOrientationEvent) {
-                window.addEventListener('deviceorientation', handleOrientation);
-            }
-            
-            updateStatus('準備完了 - ARを開始してください');
+        let arActive = false;
+        let lineVisible = true;
+        let camera, scene, distanceMarkers;
+
+        // DOM要素の取得
+        const statusDiv = document.getElementById('status');
+        const startButton = document.getElementById('startAR');
+        const resetButton = document.getElementById('resetPosition');
+        const toggleButton = document.getElementById('toggleLine');
+        const arScene = document.getElementById('arScene');
+
+        // ステータス更新関数
+        function updateStatus(message, isError = false) {
+            statusDiv.textContent = message;
+            statusDiv.className = isError ? 'error' : 'status';
         }
-        
-        async function startAR() {
+
+        // ARの初期化
+        async function initializeAR() {
             try {
-                updateStatus('カメラにアクセス中...');
-                
-                // カメラストリームを取得
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        facingMode: 'environment', // 背面カメラ
-                        width: { ideal: 1920 },
-                        height: { ideal: 1080 }
-                    }
+                // カメラアクセスの許可を要求
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' } 
                 });
                 
-                video.srcObject = stream;
-                await video.play();
+                // A-Frameシーンの要素を取得
+                scene = document.querySelector('#arScene');
+                camera = document.querySelector('#camera');
+                distanceMarkers = document.querySelector('#distanceMarkers');
                 
-                // キャンバスサイズを動画に合わせて調整
-                canvas.width = video.videoWidth || window.innerWidth;
-                canvas.height = video.videoHeight || window.innerHeight;
+                // ARシーンを表示
+                arScene.style.display = 'block';
+                arActive = true;
                 
-                isARActive = true;
-                updateStatus('AR有効 - デバイスを動かして距離を測定');
+                updateStatus('AR開始 - デバイスを水平に持って周りを見回してください');
                 
-                document.getElementById('startBtn').disabled = true;
-                document.getElementById('calibrateBtn').disabled = false;
-                document.getElementById('drawLineBtn').disabled = false;
+                // ボタンの状態を更新
+                startButton.disabled = true;
+                resetButton.disabled = false;
+                toggleButton.disabled = false;
                 
-                // AR描画ループ開始
-                requestAnimationFrame(render);
+                // デバイス方向の監視開始
+                if (window.DeviceOrientationEvent) {
+                    window.addEventListener('deviceorientation', handleOrientation);
+                }
                 
             } catch (error) {
-                console.error('カメラアクセスエラー:', error);
-                updateStatus('カメラアクセスに失敗しました');
+                console.error('AR初期化エラー:', error);
+                updateStatus('カメラアクセスが拒否されました', true);
             }
         }
-        
+
+        // デバイス方向の処理
         function handleOrientation(event) {
-            deviceOrientation = {
-                alpha: event.alpha || 0, // Z軸回転
-                beta: event.beta || 0,   // X軸回転
-                gamma: event.gamma || 0  // Y軸回転
-            };
-        }
-        
-        function calibrate() {
-            calibrationOffset = {
-                x: deviceOrientation.gamma,
-                y: deviceOrientation.beta,
-                z: deviceOrientation.alpha
-            };
-            updateStatus('キャリブレーション完了');
-        }
-        
-        function calculateDistance() {
-            // デバイスの傾きから距離を推定
-            const tiltAngle = (deviceOrientation.beta - calibrationOffset.y) * Math.PI / 180;
+            if (!arActive || !camera) return;
             
-            // カメラの高さを1.5mと仮定
-            const cameraHeight = 1.5;
+            // デバイスの向きに基づいてカメラの向きを調整
+            const alpha = event.alpha || 0; // Z軸回転
+            const beta = event.beta || 0;   // X軸回転
+            const gamma = event.gamma || 0; // Y軸回転
             
-            // 三角法を使用して距離を計算
-            let distance;
-            if (Math.abs(tiltAngle) > 0.01) {
-                distance = Math.abs(cameraHeight / Math.tan(tiltAngle));
-            } else {
-                distance = 100; // 水平な場合は遠距離とする
+            // カメラの回転を更新（必要に応じて調整）
+            if (camera.getAttribute('rotation')) {
+                camera.setAttribute('rotation', {
+                    x: beta - 90,
+                    y: alpha,
+                    z: -gamma
+                });
+            }
+        }
+
+        // 位置のリセット
+        function resetPosition() {
+            if (camera && distanceMarkers) {
+                camera.setAttribute('position', '0 1.6 0');
+                camera.setAttribute('rotation', '0 0 0');
+                updateStatus('位置をリセットしました');
+            }
+        }
+
+        // 線の表示切替
+        function toggleLineVisibility() {
+            if (distanceMarkers) {
+                lineVisible = !lineVisible;
+                distanceMarkers.setAttribute('visible', lineVisible);
+                toggleButton.textContent = lineVisible ? '線を非表示' : '線を表示';
+                updateStatus(lineVisible ? '距離マーカーを表示' : '距離マーカーを非表示');
+            }
+        }
+
+        // イベントリスナーの設定
+        startButton.addEventListener('click', initializeAR);
+        resetButton.addEventListener('click', resetPosition);
+        toggleButton.addEventListener('click', toggleLineVisibility);
+
+        // ページ読み込み時の初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            // WebXRサポートの確認
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                updateStatus('このブラウザはWebカメラをサポートしていません', true);
+                startButton.disabled = true;
+                return;
             }
             
-            // 現実的な範囲に制限
-            distance = Math.max(0.5, Math.min(distance, 50));
-            
-            return distance;
-        }
-        
-        function drawDistanceLine() {
-            const targetDistance = 3.5; // 3.5m
-            const currentDistance = calculateDistance();
-            
-            // 画面中央から線を描画
-            const centerX = canvas.width / 2;
-            const centerY = canvas.height / 2;
-            
-            // 距離に基づいて線の長さと位置を計算
-            const lineLength = Math.min(canvas.width * 0.8, 400);
-            const lineWidth = 4;
-            
-            // 水平線を描画
-            const line = {
-                x: centerX - lineLength / 2,
-                y: centerY,
-                width: lineLength,
-                height: lineWidth,
-                distance: targetDistance
-            };
-            
-            lines.push(line);
-            updateStatus(`3.5m線を描画しました（現在の距離: ${currentDistance.toFixed(1)}m）`);
-        }
-        
-        function clearLines() {
-            lines = [];
-            updateStatus('線をクリアしました');
-        }
-        
-        function render() {
-            if (!isARActive) return;
-            
-            // キャンバスをクリア
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // 現在の距離を計算
-            const currentDistance = calculateDistance();
-            document.getElementById('distance').textContent = `距離: ${currentDistance.toFixed(1)}m`;
-            
-            // 保存された線を描画
-            ctx.strokeStyle = '#ff4444';
-            ctx.fillStyle = '#ff4444';
-            ctx.shadowColor = '#ff4444';
-            ctx.shadowBlur = 10;
-            
-            lines.forEach(line => {
-                // メイン線
-                ctx.fillRect(line.x, line.y - line.height/2, line.width, line.height);
-                
-                // 端点のマーカー
-                ctx.beginPath();
-                ctx.arc(line.x, line.y, 8, 0, 2 * Math.PI);
-                ctx.fill();
-                
-                ctx.beginPath();
-                ctx.arc(line.x + line.width, line.y, 8, 0, 2 * Math.PI);
-                ctx.fill();
-                
-                // 距離ラベル
-                ctx.font = 'bold 16px -apple-system, BlinkMacSystemFont, sans-serif';
-                ctx.fillStyle = '#ffffff';
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 3;
-                ctx.strokeText(`${line.distance}m`, line.x + line.width/2 - 15, line.y - 15);
-                ctx.fillText(`${line.distance}m`, line.x + line.width/2 - 15, line.y - 15);
-            });
-            
-            // 3.5m地点の視覚的インジケーター
-            if (Math.abs(currentDistance - 3.5) < 0.3) {
-                // 目標距離に近い場合、緑色のインジケーターを表示
-                ctx.fillStyle = '#44ff44';
-                ctx.fillRect(canvas.width/2 - 100, canvas.height - 100, 200, 20);
-                
-                ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, sans-serif';
-                ctx.fillStyle = '#ffffff';
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 2;
-                ctx.strokeText('3.5m 地点!', canvas.width/2 - 40, canvas.height - 85);
-                ctx.fillText('3.5m 地点!', canvas.width/2 - 40, canvas.height - 85);
-            }
-            
-            requestAnimationFrame(render);
-        }
-        
-        function updateStatus(message) {
-            document.getElementById('status').textContent = message;
-        }
-        
-        // 画面向き変更時の処理
-        window.addEventListener('resize', () => {
-            if (canvas) {
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-            }
+            updateStatus('ARを開始する準備ができました');
         });
-        
-        // 初期化
-        window.addEventListener('load', init);
-        
-        // PWA対応のためのサービスワーカー登録
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('data:text/javascript,console.log("SW registered")');
-        }
+
+        // A-Frameシーンの読み込み完了時
+        document.querySelector('a-scene').addEventListener('loaded', function() {
+            console.log('A-Frameシーンが読み込まれました');
+        });
+
+        // エラーハンドリング
+        window.addEventListener('error', function(event) {
+            console.error('エラー:', event.error);
+            updateStatus('エラーが発生しました: ' + event.error.message, true);
+        });
     </script>
 </body>
 </html>
